@@ -4,7 +4,6 @@ import pandas as pd
 import streamlit as st
 
 from chapter4_dashboard.data.loader import load_disk_v2
-from chapter4_dashboard.data.placeholder import generate_placeholder
 from chapter4_dashboard.utils.captions import caption_table_main_results, caption_table_stats
 from chapter4_dashboard.utils.colors import variant_color_map
 from chapter4_dashboard.utils.export import (
@@ -36,11 +35,10 @@ def _init_data_if_needed() -> None:
         st.session_state.df_curves = df_curves
         st.session_state.data_source = "disk:v2"
     else:
-        df_runs, df_eff, df_curves = generate_placeholder()
-        st.session_state.df_runs = df_runs
-        st.session_state.df_efficiency = df_eff
-        st.session_state.df_curves = df_curves
-        st.session_state.data_source = "placeholder"
+        st.session_state.df_runs = pd.DataFrame()
+        st.session_state.df_efficiency = pd.DataFrame()
+        st.session_state.df_curves = pd.DataFrame()
+        st.session_state.data_source = "none"
 
 
 def _sidebar_data_upload() -> None:
@@ -60,14 +58,13 @@ def _sidebar_data_upload() -> None:
     with col_a:
         apply_clicked = st.button("Apply CSV uploads", use_container_width=True)
     with col_b:
-        reset_clicked = st.button("Reset to placeholder data", use_container_width=True)
+        clear_clicked = st.button("Clear loaded data", use_container_width=True)
 
-    if reset_clicked:
-        df_runs, df_eff, df_curves = generate_placeholder()
-        st.session_state.df_runs = df_runs
-        st.session_state.df_efficiency = df_eff
-        st.session_state.df_curves = df_curves
-        st.session_state.data_source = "placeholder"
+    if clear_clicked:
+        st.session_state.df_runs = pd.DataFrame()
+        st.session_state.df_efficiency = pd.DataFrame()
+        st.session_state.df_curves = pd.DataFrame()
+        st.session_state.data_source = "none"
         st.session_state.stats_results = None
         st.rerun()
 
@@ -152,15 +149,22 @@ def render_app() -> None:
     _sidebar_data_upload()
     _sidebar_global_filters()
 
+    st.title("Chapter 4 — Results and Discussion")
+    st.caption(f"**Data source:** {st.session_state.get('data_source', 'unknown')}")
+
+    if df_runs.empty or df_eff.empty:
+        st.info(
+            "No data loaded yet. Place trained-model artifacts in the repo root (e.g. `Trained Models v2/`) "
+            "or upload `df_runs.csv`, `df_efficiency.csv`, and `df_curves.csv` from the sidebar."
+        )
+        return
+
     # Recompute heavy stats only on data change.
     recompute_if_needed()
 
     df_runs_f = get_filtered(df_runs)
     df_curves_f = get_filtered(df_curves)
     cmap = variant_color_map(st.session_state.theme)
-
-    st.title("Chapter 4 — Results and Discussion")
-    st.caption(f"**Data source:** {st.session_state.get('data_source', 'unknown')}")
 
     tabs = st.tabs(
         [

@@ -6,9 +6,14 @@ import plotly.graph_objects as go
 from chapter4_dashboard.utils.colors import plotly_font_kwargs, plotly_template
 
 
-def build_budget_bars(df_eff: pd.DataFrame, cmap: dict[str, str], theme: str) -> go.Figure:
+def build_budget_bars(
+    df_eff: pd.DataFrame,
+    cmap: dict[str, str],
+    theme: str,
+    variants: list[str] | None = None,
+) -> go.Figure:
     """
-    Horizontal grouped bars: Params and FLOPs, with dashed ±10% reference vs baseline.
+    Horizontal grouped bars: Params and FLOPs, with +10% reference vs baseline.
     """
     if df_eff.empty:
         return go.Figure()
@@ -18,7 +23,10 @@ def build_budget_bars(df_eff: pd.DataFrame, cmap: dict[str, str], theme: str) ->
 
     base_p = float(eff.loc["Baseline", "params_M"])
     base_f = float(eff.loc["Baseline", "flops_M"])
-    variants = [v for v in ["Baseline", "DualConv-only", "ECA-only", "Hybrid"] if v in eff.index]
+    if variants is None:
+        variants = [v for v in ["Baseline", "DualConv-only", "ECA-only", "Hybrid"] if v in eff.index]
+    else:
+        variants = [v for v in variants if v in eff.index]
 
     vals_p = [float(eff.loc[v, "params_M"]) / base_p * 100.0 - 100.0 for v in variants]
     vals_f = [float(eff.loc[v, "flops_M"]) / base_f * 100.0 - 100.0 for v in variants]
@@ -47,16 +55,15 @@ def build_budget_bars(df_eff: pd.DataFrame, cmap: dict[str, str], theme: str) ->
     fig.update_layout(
         barmode="group",
         template=plotly_template(theme),  # type: ignore[arg-type]
-        title="Parameter and FLOP Overhead Relative to Baseline MobileNetV2 (±10% budget)",
+        title="Parameter and FLOP Overhead Relative to Baseline MobileNetV2 (< +10% budget)",
         xaxis_title="Overhead vs Baseline (%)",
         yaxis_title="Variant",
         **plotly_font_kwargs(),
-        height=560,
+        height=max(360, 90 * len(variants)),
         legend_title_text="Metric",
     )
     # reference lines
-    for x in (-10, 10):
-        fig.add_vline(x=x, line_width=1, line_dash="dash", line_color="#666666")
+    fig.add_vline(x=10, line_width=1, line_dash="dash", line_color="#666666")
     fig.add_vline(x=0, line_width=1, line_dash="solid", line_color="#333333")
     return fig
 

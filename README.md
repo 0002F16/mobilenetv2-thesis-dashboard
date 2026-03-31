@@ -20,7 +20,7 @@ The app will try the following (in order):
   - `Trained Models v2/`
   - `Trained Models v1/`
 - **CSV upload**: use the sidebar to upload `df_runs.csv`, `df_efficiency.csv`, and `df_curves.csv`.
-- **Placeholder data**: if nothing is available, the app uses built-in placeholder tables/curves.
+- **No fallback**: if no artifacts are found and no CSVs are uploaded, the dashboard shows an empty state.
 
 ## Repo layout
 

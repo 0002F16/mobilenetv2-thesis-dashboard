@@ -56,8 +56,8 @@ def render_tab_raw_data(
         de["delta_params_pct"] = (de["params_M"] - base["params_M"]) / base["params_M"] * 100
         de["delta_flops_pct"] = (de["flops_M"] - base["flops_M"]) / base["flops_M"] * 100
 
-        within = bool(((de["delta_params_pct"].abs() <= 10) & (de["delta_flops_pct"].abs() <= 10)).all())
-        st.info(f'All variants within ±10% budget: **{"TRUE" if within else "FALSE"}**')
+        within = bool(((de["delta_params_pct"] < 10) & (de["delta_flops_pct"] < 10)).all())
+        st.info(f'All variants under < +10% budget: **{"TRUE" if within else "FALSE"}**')
         st.dataframe(style_efficiency_delta(de), use_container_width=True, height=320)
 
     else:
