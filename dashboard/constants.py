@@ -26,13 +26,17 @@ DATASET_FOLDER_TO_DISPLAY = {
 DATASET_DISPLAY_TO_FOLDER = {v: k for k, v in DATASET_FOLDER_TO_DISPLAY.items()}
 
 # Trained model tree roots (relative to repo root)
-TRAINED_MODEL_ROOTS = ["Trained Models v3", "Trained Models v2", "Trained Models v1"]
+# Notes:
+# - v2/v3 share the same on-disk layout used by `dashboard.loaders.load_disk_data()`.
+# - Some exports may be placed under a generic `Trained Models/` folder; we treat it as v2 layout.
+TRAINED_MODEL_ROOTS = ["Trained Models v3", "Trained Models v2", "Trained Models", "Trained Models v1"]
 
 # Sidebar / loader: single version at a time (folder name under repo root)
 VERSION_TO_FOLDER = {
     "v1": "Trained Models v1",
     "v2": "Trained Models v2",
     "v3": "Trained Models v3",
+    "v2_generic": "Trained Models",
 }
 
 # Static per-variant latency (ms); params/FLOPs/size come from metrics.json on disk

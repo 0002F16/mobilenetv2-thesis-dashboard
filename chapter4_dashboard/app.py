@@ -3,7 +3,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from chapter4_dashboard.data.loader import load_disk_v2
+from chapter4_dashboard.data.loader import load_disk_auto
 from chapter4_dashboard.utils.captions import caption_table_main_results, caption_table_stats
 from chapter4_dashboard.utils.colors import variant_color_map
 from chapter4_dashboard.utils.export import (
@@ -28,12 +28,13 @@ def _init_data_if_needed() -> None:
     if "df_runs" in st.session_state and "df_efficiency" in st.session_state and "df_curves" in st.session_state:
         return
 
-    df_runs, df_eff, df_curves, _meta = load_disk_v2()
+    df_runs, df_eff, df_curves, _meta = load_disk_auto()
     if len(df_runs) and len(df_eff):
         st.session_state.df_runs = df_runs
         st.session_state.df_efficiency = df_eff
         st.session_state.df_curves = df_curves
-        st.session_state.data_source = "disk:v2"
+        # Preserve prior label shape while indicating auto-detection.
+        st.session_state.data_source = f"disk:auto ({_meta.get('auto_selected_folder', 'unknown')})"
     else:
         st.session_state.df_runs = pd.DataFrame()
         st.session_state.df_efficiency = pd.DataFrame()
