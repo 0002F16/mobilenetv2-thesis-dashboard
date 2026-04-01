@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pandas as pd
 import streamlit as st
 
@@ -24,14 +26,51 @@ from chapter4_dashboard.tabs.comparative_analysis import render_tab_comparative
 from chapter4_dashboard.tabs.training_diagnostics import render_tab_diagnostics
 
 
+def _apply_latency_defaults_to_efficiency(df_eff: pd.DataFrame, df_latency: pd.DataFrame) -> pd.DataFrame:
+    """
+    Keep downstream tabs working with a single latency per variant by choosing a
+    consistent dataset default (prefer CIFAR-100), while Objective 2 can use df_latency
+    for dataset-specific latency.
+    """
+    if df_eff.empty or "variant" not in df_eff.columns:
+        return df_eff
+    out = df_eff.copy()
+    # Always ensure we have some latency value, even for CSV uploads.
+    if "latency_ms" not in out.columns:
+        out["latency_ms"] = pd.NA
+    try:
+        from dashboard.constants import static_latency_ms
+
+        for v in out["variant"].astype(str).unique():
+            mask = (out["variant"] == v) & (out["latency_ms"].isna())
+            if mask.any():
+                out.loc[mask, "latency_ms"] = float(static_latency_ms(v))
+    except Exception:
+        pass
+
+    if df_latency is None or df_latency.empty:
+        return out
+    need = {"dataset", "variant", "latency_mean_ms"}
+    if not need.issubset(set(df_latency.columns)):
+        return out
+    sub = df_latency[df_latency["dataset"] == "CIFAR-100"].set_index("variant")
+    if sub.empty:
+        return out
+    for v in out["variant"].astype(str).unique():
+        if v in sub.index:
+            out.loc[out["variant"] == v, "latency_ms"] = float(sub.loc[v, "latency_mean_ms"])
+    return out
+
+
 def _init_data_if_needed() -> None:
     if "df_runs" in st.session_state and "df_efficiency" in st.session_state and "df_curves" in st.session_state:
         return
 
-    df_runs, df_eff, df_curves, _meta = load_disk_auto()
+    df_runs, df_eff, df_curves, df_latency, _meta = load_disk_auto()
     if len(df_runs) and len(df_eff):
         st.session_state.df_runs = df_runs
-        st.session_state.df_efficiency = df_eff
+        st.session_state.df_latency = df_latency
+        st.session_state.df_efficiency = _apply_latency_defaults_to_efficiency(df_eff, df_latency)
         st.session_state.df_curves = df_curves
         # Preserve prior label shape while indicating auto-detection.
         st.session_state.data_source = f"disk:auto ({_meta.get('auto_selected_folder', 'unknown')})"
@@ -39,6 +78,7 @@ def _init_data_if_needed() -> None:
         st.session_state.df_runs = pd.DataFrame()
         st.session_state.df_efficiency = pd.DataFrame()
         st.session_state.df_curves = pd.DataFrame()
+        st.session_state.df_latency = pd.DataFrame()
         st.session_state.data_source = "none"
 
 
@@ -48,12 +88,14 @@ def _sidebar_data_upload() -> None:
         st.code(
             "df_runs: seed, variant, dataset, top1_acc, top5_acc\n"
             "df_efficiency: variant, params_M, flops_M, size_mb, latency_ms\n"
-            "df_curves: variant, dataset, seed, epoch, train_loss, val_loss, val_top1, is_best_epoch"
+            "df_curves: variant, dataset, seed, epoch, train_loss, val_loss, val_top1, is_best_epoch\n"
+            "latency_results.json (optional): results[].dataset, results[].variant, results[].seed, results[].latency_ms_per_image"
         )
 
     up_runs = st.sidebar.file_uploader("Upload df_runs.csv", type=["csv"], key="up_runs")
     up_eff = st.sidebar.file_uploader("Upload df_efficiency.csv", type=["csv"], key="up_eff")
     up_curves = st.sidebar.file_uploader("Upload df_curves.csv", type=["csv"], key="up_curves")
+    up_latency = st.sidebar.file_uploader("Upload latency_results.json (optional)", type=["json"], key="up_latency")
 
     col_a, col_b = st.sidebar.columns(2)
     with col_a:
@@ -65,6 +107,7 @@ def _sidebar_data_upload() -> None:
         st.session_state.df_runs = pd.DataFrame()
         st.session_state.df_efficiency = pd.DataFrame()
         st.session_state.df_curves = pd.DataFrame()
+        st.session_state.df_latency = pd.DataFrame()
         st.session_state.data_source = "none"
         st.session_state.stats_results = None
         st.rerun()
@@ -82,7 +125,19 @@ def _sidebar_data_upload() -> None:
             return
 
         st.session_state.df_runs = df_runs
-        st.session_state.df_efficiency = df_eff
+        df_latency = pd.DataFrame()
+        if up_latency is not None:
+            try:
+                payload = json.loads(up_latency.getvalue().decode("utf-8"))
+                from dashboard.loaders import aggregate_latency, load_latency_payload
+
+                df_latency = aggregate_latency(load_latency_payload(payload))
+            except Exception as e:
+                st.sidebar.warning(f"Failed reading latency_results.json: {e}")
+                df_latency = pd.DataFrame()
+
+        st.session_state.df_latency = df_latency
+        st.session_state.df_efficiency = _apply_latency_defaults_to_efficiency(df_eff, df_latency)
         st.session_state.df_curves = df_curves
         st.session_state.data_source = "csv"
         st.session_state.stats_results = None
@@ -146,6 +201,7 @@ def render_app() -> None:
     df_runs = st.session_state.df_runs
     df_eff = st.session_state.df_efficiency
     df_curves = st.session_state.df_curves
+    df_latency = st.session_state.df_latency
 
     _sidebar_data_upload()
     _sidebar_global_filters()
@@ -183,7 +239,7 @@ def render_app() -> None:
     with tabs[1]:
         render_tab_budget(df_eff, cmap)
     with tabs[2]:
-        render_tab_performance(df_runs_f, df_eff, cmap)
+        render_tab_performance(df_runs_f, df_eff, df_latency, cmap)
     with tabs[3]:
         render_tab_ablation(df_runs_f, cmap)
     with tabs[4]:

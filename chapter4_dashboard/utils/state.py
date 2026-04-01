@@ -25,6 +25,7 @@ def ensure_session_state() -> None:
     st.session_state.setdefault("selected_variants", list(VARIANT_ORDER))
     st.session_state.setdefault("stats_results", None)
     st.session_state.setdefault("data_hash", "")
+    st.session_state.setdefault("df_latency", pd.DataFrame())
 
 
 def get_filtered(df: pd.DataFrame) -> pd.DataFrame:

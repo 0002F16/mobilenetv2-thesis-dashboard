@@ -5,11 +5,13 @@ from typing import Any
 
 import pandas as pd
 
-from dashboard.loaders import load_disk_data
+from dashboard.loaders import load_disk_data, load_repo_latency
 from dashboard.constants import TRAINED_MODEL_ROOTS
 
 
-def load_disk_v2(repo_root: Path | None = None) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, Any]]:
+def load_disk_v2(
+    repo_root: Path | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, Any]]:
     """
     Load from repo-root `Trained Models v2/` using the existing (tested) loader.
 
@@ -25,12 +27,16 @@ def load_disk_v2(repo_root: Path | None = None) -> tuple[pd.DataFrame, pd.DataFr
             pd.DataFrame(),
             pd.DataFrame(),
             pd.DataFrame(),
+            pd.DataFrame(),
             {"artifact_version": "v2", "error": str(e)},
         )
-    return df_runs, df_eff, df_curves, meta
+    df_latency = load_repo_latency(repo_root)
+    return df_runs, df_eff, df_curves, df_latency, meta
 
 
-def load_disk_auto(repo_root: Path | None = None) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, Any]]:
+def load_disk_auto(
+    repo_root: Path | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, Any]]:
     """
     Try to load trained-model artifacts from disk, preferring newer layouts.
 
@@ -64,9 +70,11 @@ def load_disk_auto(repo_root: Path | None = None) -> tuple[pd.DataFrame, pd.Data
             continue
         if len(df_runs) and len(df_eff):
             meta = {**meta, "auto_selected_folder": folder, "auto_selected_version": version}
-            return df_runs, df_eff, df_curves, meta
+            df_latency = load_repo_latency(root)
+            return df_runs, df_eff, df_curves, df_latency, meta
 
     return (
+        pd.DataFrame(),
         pd.DataFrame(),
         pd.DataFrame(),
         pd.DataFrame(),

@@ -9,12 +9,18 @@ from chapter4_dashboard.utils.captions import caption_table_main_results, captio
 from chapter4_dashboard.utils.export import dataframe_to_csv_bytes, figure_to_png_bytes
 
 
-def _main_results_table(df_runs: pd.DataFrame, df_eff: pd.DataFrame) -> pd.DataFrame:
+def _main_results_table(df_runs: pd.DataFrame, df_eff: pd.DataFrame, df_latency: pd.DataFrame) -> pd.DataFrame:
     if df_runs.empty or df_eff.empty or "Baseline" not in df_eff["variant"].values:
         return pd.DataFrame()
     eff = df_eff.set_index("variant")
     base_p = float(eff.loc["Baseline", "params_M"])
     base_f = float(eff.loc["Baseline", "flops_M"])
+
+    lat = None
+    if df_latency is not None and not df_latency.empty:
+        need = {"dataset", "variant", "latency_mean_ms"}
+        if need.issubset(set(df_latency.columns)):
+            lat = df_latency.set_index(["dataset", "variant"])
 
     agg = (
         df_runs.groupby(["dataset", "variant"], as_index=False)
@@ -33,6 +39,22 @@ def _main_results_table(df_runs: pd.DataFrame, df_eff: pd.DataFrame) -> pd.DataF
             continue
         dpp = (float(eff.loc[v, "params_M"]) - base_p) / base_p * 100.0
         dff = (float(eff.loc[v, "flops_M"]) - base_f) / base_f * 100.0
+
+        lat_mean = np.nan
+        lat_std = np.nan
+        if lat is not None and (ds, v) in lat.index:
+            lat_mean = float(lat.loc[(ds, v), "latency_mean_ms"])
+            if "latency_std_ms" in lat.columns:
+                try:
+                    lat_std = float(lat.loc[(ds, v), "latency_std_ms"])
+                except Exception:
+                    lat_std = np.nan
+        latency_disp = (
+            f"{lat_mean:.2f} ± {lat_std:.2f}"
+            if np.isfinite(lat_mean) and np.isfinite(lat_std)
+            else (f"{lat_mean:.2f}" if np.isfinite(lat_mean) else "—")
+        )
+
         rows.append(
             {
                 "Dataset": ds,
@@ -44,8 +66,9 @@ def _main_results_table(df_runs: pd.DataFrame, df_eff: pd.DataFrame) -> pd.DataF
                 "FLOPs(M)": float(eff.loc[v, "flops_M"]),
                 "ΔFLOPs%": dff,
                 "Size(MB)": float(eff.loc[v, "size_mb"]),
-                "Latency(ms)": float(eff.loc[v, "latency_ms"]),
+                "Latency(ms)": latency_disp,
                 "_top1_mean": float(r["top1_mean"]),
+                "_latency_mean_ms": lat_mean,
             }
         )
     df = pd.DataFrame(rows)
@@ -56,7 +79,9 @@ def _main_results_table(df_runs: pd.DataFrame, df_eff: pd.DataFrame) -> pd.DataF
     return df
 
 
-def render_tab_performance(df_runs: pd.DataFrame, df_eff: pd.DataFrame, cmap: dict[str, str]) -> None:
+def render_tab_performance(
+    df_runs: pd.DataFrame, df_eff: pd.DataFrame, df_latency: pd.DataFrame, cmap: dict[str, str]
+) -> None:
     st.subheader("Tab 3 — Objective 2: Performance Results")
     st.info(
         "“Specific Objective 2: Demonstrate that the proposed MobileNetV2 architectural variants "
@@ -64,12 +89,12 @@ def render_tab_performance(df_runs: pd.DataFrame, df_eff: pd.DataFrame, cmap: di
     )
 
     st.markdown("**3A — Main Results Table**")
-    tbl = _main_results_table(df_runs, df_eff)
+    tbl = _main_results_table(df_runs, df_eff, df_latency)
     if tbl.empty:
         st.warning("Main results table requires `df_runs` and `df_efficiency` with a Baseline row.")
     else:
         def style(df: pd.DataFrame) -> pd.io.formats.style.Styler:
-            sty = df.drop(columns=["_top1_mean"]).style
+            sty = df.drop(columns=["_top1_mean", "_latency_mean_ms"]).style
 
             def hi(data):
                 out = pd.DataFrame("", index=data.index, columns=data.columns)
@@ -97,14 +122,13 @@ def render_tab_performance(df_runs: pd.DataFrame, df_eff: pd.DataFrame, cmap: di
                     "FLOPs(M)": "{:.1f}",
                     "ΔFLOPs%": "{:+.2f}",
                     "Size(MB)": "{:.2f}",
-                    "Latency(ms)": "{:.2f}",
                 }
             )
 
         st.dataframe(style(tbl), use_container_width=True, height=420)
         st.download_button(
             "Download Main results table (CSV)",
-            dataframe_to_csv_bytes(tbl.drop(columns=["_top1_mean"])),
+            dataframe_to_csv_bytes(tbl.drop(columns=["_top1_mean", "_latency_mean_ms"])),
             file_name="main_results_table.csv",
             mime="text/csv",
         )

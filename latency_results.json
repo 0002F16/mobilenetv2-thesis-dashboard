@@ -1,0 +1,235 @@
+{
+  "meta": {
+    "device": "cpu",
+    "git_commit": "6d4d96d01019c1ff9d480cde3c34de611277bfd8",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.14.3",
+    "pytorch": "2.11.0+cpu",
+    "timestamp_utc": "2026-04-01T10:03:05+00:00"
+  },
+  "results": [
+    {
+      "batch_size": 1,
+      "dataset": "cifar10",
+      "dtype": "fp32",
+      "input_size_chw": [
+        3,
+        32,
+        32
+      ],
+      "iters": 200,
+      "latency_ms_per_image": 7.769681500212755,
+      "run_dir": "C:\\Users\\karl\\repo\\hybrid-mobilenetv2-dualconv-eca\\Trained Models\\cifar10\\baseline\\seed_42",
+      "seed": "seed_42",
+      "status": "ok",
+      "variant": "baseline",
+      "warmup": 50
+    },
+    {
+      "batch_size": 1,
+      "dataset": "cifar10",
+      "dtype": "fp32",
+      "input_size_chw": [
+        3,
+        32,
+        32
+      ],
+      "iters": 200,
+      "latency_ms_per_image": 7.113489000184927,
+      "run_dir": "C:\\Users\\karl\\repo\\hybrid-mobilenetv2-dualconv-eca\\Trained Models\\cifar10\\dualconv\\seed_123",
+      "seed": "seed_123",
+      "status": "ok",
+      "variant": "dualconv",
+      "warmup": 50
+    },
+    {
+      "batch_size": 1,
+      "dataset": "cifar10",
+      "dtype": "fp32",
+      "input_size_chw": [
+        3,
+        32,
+        32
+      ],
+      "iters": 200,
+      "latency_ms_per_image": 8.91407999995863,
+      "run_dir": "C:\\Users\\karl\\repo\\hybrid-mobilenetv2-dualconv-eca\\Trained Models\\cifar10\\eca\\seed_3407",
+      "seed": "seed_3407",
+      "status": "ok",
+      "variant": "eca",
+      "warmup": 50
+    },
+    {
+      "batch_size": 1,
+      "dataset": "cifar10",
+      "dtype": "fp32",
+      "input_size_chw": [
+        3,
+        32,
+        32
+      ],
+      "iters": 200,
+      "latency_ms_per_image": 7.984666000120342,
+      "run_dir": "C:\\Users\\karl\\repo\\hybrid-mobilenetv2-dualconv-eca\\Trained Models\\cifar10\\hybrid\\seed_42",
+      "seed": "seed_42",
+      "status": "ok",
+      "variant": "hybrid",
+      "warmup": 50
+    },
+    {
+      "batch_size": 1,
+      "dataset": "cifar100",
+      "dtype": "fp32",
+      "input_size_chw": [
+        3,
+        32,
+        32
+      ],
+      "iters": 200,
+      "latency_ms_per_image": 8.076093999843579,
+      "run_dir": "C:\\Users\\karl\\repo\\hybrid-mobilenetv2-dualconv-eca\\Trained Models\\cifar100\\baseline\\seed_2024",
+      "seed": "seed_2024",
+      "status": "ok",
+      "variant": "baseline",
+      "warmup": 50
+    },
+    {
+      "batch_size": 1,
+      "dataset": "cifar100",
+      "dtype": "fp32",
+      "input_size_chw": [
+        3,
+        32,
+        32
+      ],
+      "iters": 200,
+      "latency_ms_per_image": 7.1576809999533,
+      "run_dir": "C:\\Users\\karl\\repo\\hybrid-mobilenetv2-dualconv-eca\\Trained Models\\cifar100\\dualconv\\seed_777",
+      "seed": "seed_777",
+      "status": "ok",
+      "variant": "dualconv",
+      "warmup": 50
+    },
+    {
+      "batch_size": 1,
+      "dataset": "cifar100",
+      "dtype": "fp32",
+      "input_size_chw": [
+        3,
+        32,
+        32
+      ],
+      "iters": 200,
+      "latency_ms_per_image": 9.500501500151586,
+      "run_dir": "C:\\Users\\karl\\repo\\hybrid-mobilenetv2-dualconv-eca\\Trained Models\\cifar100\\eca\\seed_123",
+      "seed": "seed_123",
+      "status": "ok",
+      "variant": "eca",
+      "warmup": 50
+    },
+    {
+      "batch_size": 1,
+      "dataset": "cifar100",
+      "dtype": "fp32",
+      "input_size_chw": [
+        3,
+        32,
+        32
+      ],
+      "iters": 200,
+      "latency_ms_per_image": 8.01548899995396,
+      "run_dir": "C:\\Users\\karl\\repo\\hybrid-mobilenetv2-dualconv-eca\\Trained Models\\cifar100\\hybrid\\seed_3407",
+      "seed": "seed_3407",
+      "status": "ok",
+      "variant": "hybrid",
+      "warmup": 50
+    },
+    {
+      "batch_size": 1,
+      "dataset": "tiny_imagenet",
+      "dtype": "fp32",
+      "input_size_chw": [
+        3,
+        64,
+        64
+      ],
+      "iters": 200,
+      "latency_ms_per_image": 8.063580000016373,
+      "run_dir": "C:\\Users\\karl\\repo\\hybrid-mobilenetv2-dualconv-eca\\Trained Models\\tiny_imagenet\\baseline\\seed_123",
+      "seed": "seed_123",
+      "status": "ok",
+      "variant": "baseline",
+      "warmup": 50
+    },
+    {
+      "batch_size": 1,
+      "dataset": "tiny_imagenet",
+      "dtype": "fp32",
+      "input_size_chw": [
+        3,
+        64,
+        64
+      ],
+      "iters": 200,
+      "latency_ms_per_image": 7.360035499732476,
+      "run_dir": "C:\\Users\\karl\\repo\\hybrid-mobilenetv2-dualconv-eca\\Trained Models\\tiny_imagenet\\dualconv\\seed_42",
+      "seed": "seed_42",
+      "status": "ok",
+      "variant": "dualconv",
+      "warmup": 50
+    },
+    {
+      "batch_size": 1,
+      "dataset": "tiny_imagenet",
+      "dtype": "fp32",
+      "input_size_chw": [
+        3,
+        64,
+        64
+      ],
+      "iters": 200,
+      "latency_ms_per_image": 8.989168500120286,
+      "run_dir": "C:\\Users\\karl\\repo\\hybrid-mobilenetv2-dualconv-eca\\Trained Models\\tiny_imagenet\\eca\\seed_123",
+      "seed": "seed_123",
+      "status": "ok",
+      "variant": "eca",
+      "warmup": 50
+    },
+    {
+      "batch_size": 1,
+      "dataset": "tiny_imagenet",
+      "dtype": "fp32",
+      "input_size_chw": [
+        3,
+        64,
+        64
+      ],
+      "iters": 200,
+      "latency_ms_per_image": 8.195082000165712,
+      "run_dir": "C:\\Users\\karl\\repo\\hybrid-mobilenetv2-dualconv-eca\\Trained Models\\tiny_imagenet\\hybrid\\seed_123",
+      "seed": "seed_123",
+      "status": "ok",
+      "variant": "hybrid",
+      "warmup": 50
+    }
+  ],
+  "settings": {
+    "batch_size": 1,
+    "dataset_choice": "auto",
+    "datasets_benchmarked": [
+      "cifar10",
+      "cifar100",
+      "tiny_imagenet"
+    ],
+    "dtype": "fp32",
+    "iters": 200,
+    "trained_root": "C:\\Users\\karl\\repo\\hybrid-mobilenetv2-dualconv-eca\\Trained Models",
+    "variants": [
+      "baseline",
+      "dualconv",
+      "eca",
+      "hybrid"
+    ],
+    "warmup": 50
+  }
+}

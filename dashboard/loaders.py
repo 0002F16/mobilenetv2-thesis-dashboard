@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -61,6 +62,106 @@ def _parse_epochs_jsonl(path: Path) -> pd.DataFrame | None:
     else:
         df["val_top1"] = np.nan
     return df
+
+
+def _parse_seed(seed_raw: object) -> int | None:
+    if seed_raw is None:
+        return None
+    if isinstance(seed_raw, int):
+        return seed_raw
+    s = str(seed_raw).strip().lower()
+    m = re.fullmatch(r"seed_(\d+)", s)
+    if m:
+        try:
+            return int(m.group(1))
+        except ValueError:
+            return None
+    try:
+        return int(s)
+    except ValueError:
+        return None
+
+
+def _normalize_variant(variant_raw: object) -> str:
+    s = str(variant_raw).lower().strip()
+    return VARIANT_FOLDER_TO_DISPLAY.get(s, VARIANT_FOLDER_TO_DISPLAY.get("baseline", "Baseline"))
+
+
+def load_latency_results(path: Path) -> pd.DataFrame:
+    """
+    Load repo-root latency benchmark JSON into a normalized long DataFrame.
+
+    Output columns:
+      dataset (display), variant (display), seed (int|NA), latency_ms_per_image (float)
+    """
+    if not path.is_file():
+        return pd.DataFrame(columns=["dataset", "variant", "seed", "latency_ms_per_image"])
+    try:
+        payload = _read_json(path)
+    except (OSError, json.JSONDecodeError):
+        return pd.DataFrame(columns=["dataset", "variant", "seed", "latency_ms_per_image"])
+    return load_latency_payload(payload)
+
+
+def load_latency_payload(payload: dict[str, Any]) -> pd.DataFrame:
+    """
+    Parse a latency results payload (already-loaded JSON) into the normalized long DataFrame
+    returned by `load_latency_results()`.
+    """
+    rows = payload.get("results")
+    if not isinstance(rows, list):
+        return pd.DataFrame(columns=["dataset", "variant", "seed", "latency_ms_per_image"])
+
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        if str(r.get("status", "ok")).lower().strip() != "ok":
+            continue
+        ds = _normalize_dataset(r.get("dataset", ""))
+        v = _normalize_variant(r.get("variant", "baseline"))
+        seed = _parse_seed(r.get("seed"))
+        try:
+            lat = float(r.get("latency_ms_per_image"))
+        except (TypeError, ValueError):
+            continue
+        out.append({"dataset": ds, "variant": v, "seed": seed, "latency_ms_per_image": lat})
+
+    if not out:
+        return pd.DataFrame(columns=["dataset", "variant", "seed", "latency_ms_per_image"])
+    return pd.DataFrame(out)
+
+
+def aggregate_latency(df_latency_raw: pd.DataFrame) -> pd.DataFrame:
+    """
+    Aggregate latency to dataset+variant summary (mean/std/n).
+
+    Returns columns:
+      dataset, variant, latency_mean_ms, latency_std_ms, latency_n
+    """
+    if df_latency_raw is None or df_latency_raw.empty:
+        return pd.DataFrame(columns=["dataset", "variant", "latency_mean_ms", "latency_std_ms", "latency_n"])
+    need = {"dataset", "variant", "latency_ms_per_image"}
+    if not need.issubset(set(df_latency_raw.columns)):
+        return pd.DataFrame(columns=["dataset", "variant", "latency_mean_ms", "latency_std_ms", "latency_n"])
+
+    df = df_latency_raw.copy()
+    df["latency_ms_per_image"] = pd.to_numeric(df["latency_ms_per_image"], errors="coerce")
+    df = df[np.isfinite(df["latency_ms_per_image"].to_numpy())]
+    if df.empty:
+        return pd.DataFrame(columns=["dataset", "variant", "latency_mean_ms", "latency_std_ms", "latency_n"])
+
+    g = (
+        df.groupby(["dataset", "variant"], as_index=False)
+        .agg(
+            latency_mean_ms=("latency_ms_per_image", "mean"),
+            latency_std_ms=("latency_ms_per_image", "std"),
+            latency_n=("latency_ms_per_image", "count"),
+        )
+        .sort_values(["dataset", "variant"], kind="stable")
+        .reset_index(drop=True)
+    )
+    return g
 
 
 def load_disk_metrics_single(root: Path, folder_name: str) -> dict[tuple[str, str, int], dict[str, Any]]:
@@ -310,6 +411,12 @@ def load_disk_data(version: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFra
         "tiny_imagenet_on_disk": bool((df_runs["dataset"] == "Tiny-ImageNet").any()) if len(df_runs) else False,
     }
     return df_runs, df_eff, df_curves, meta
+
+
+def load_repo_latency(repo_root: Path | None = None) -> pd.DataFrame:
+    root = repo_root or _repo_root()
+    raw = load_latency_results(root / "latency_results.json")
+    return aggregate_latency(raw)
 
 
 def compute_data_hash(df_runs: pd.DataFrame, df_eff: pd.DataFrame, df_curves: pd.DataFrame) -> str:
