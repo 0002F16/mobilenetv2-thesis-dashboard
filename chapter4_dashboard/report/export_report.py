@@ -14,7 +14,8 @@ from chapter4_dashboard.utils.colors import variant_color_map
 from chapter4_dashboard.utils.export import figure_to_png_bytes
 
 from chapter4_dashboard.figures.bars import build_accuracy_bars
-from chapter4_dashboard.figures.budget import build_budget_bars
+from chapter4_dashboard.figures.budget import build_budget_bars, build_budget_compliance_normalized_bars
+from chapter4_dashboard.figures.latency import build_per_dataset_latency_bars
 from chapter4_dashboard.figures.paired import build_paired_delta_grid
 from chapter4_dashboard.figures.radar import build_efficiency_radar
 from chapter4_dashboard.figures.scatter import build_accuracy_efficiency_scatter
@@ -97,7 +98,17 @@ def export_report_html(
 
     figures: list[tuple[str, object]] = []
     # Objective 1
-    figures.append(("Budget compliance bars", build_budget_bars(df_eff, cmap, theme)))
+    figures.append(("Budget compliance bars (Δ vs Baseline, %)", build_budget_bars(df_eff, cmap, theme)))
+    figures.append(
+        (
+            "Figure 15 — Budget compliance (Params, FLOPs, size % of Baseline)",
+            build_budget_compliance_normalized_bars(df_eff, theme),
+        )
+    )
+    if not per_ds_latency_tbl.empty:
+        figures.append(
+            ("Per-dataset inference latency (grouped bars)", build_per_dataset_latency_bars(per_ds_latency_tbl, cmap, theme))
+        )
     # Objective 2
     figures.append(("Top-1 accuracy bars (absolute)", build_accuracy_bars(df_runs, "top1", cmap, theme, True, False)))
     figures.append(("Top-1 accuracy bars (Δ vs Baseline)", build_accuracy_bars(df_runs, "top1", cmap, theme, True, True)))
@@ -188,7 +199,10 @@ def export_report_html(
     <h3>Per-dataset inference latency (ms)</h3>
     <p>
       Mean latency per image (batch size 1) for each variant on CIFAR-10, CIFAR-100, and Tiny-ImageNet.
-      Despite near-zero FLOPs overhead, ECA-only records the highest latency across all datasets.
+      Despite near-zero FLOPs overhead, ECA-only records the highest latency across all datasets,
+      illustrating the decoupling of theoretical compute cost from actual hardware execution time.
+      DualConv-only achieves the lowest latency, falling below the Baseline in all three conditions.
+      (See also the grouped figure in the exported figures section.)
     </p>
     {_df_to_html_table(per_ds_latency_tbl, max_rows=50)}
     """

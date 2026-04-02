@@ -3,7 +3,8 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from chapter4_dashboard.figures.budget import build_budget_bars
+from chapter4_dashboard.figures.budget import build_budget_bars, build_budget_compliance_normalized_bars
+from chapter4_dashboard.figures.latency import build_per_dataset_latency_bars
 from chapter4_dashboard.utils.constants import DATASET_ORDER, VARIANT_ORDER
 from chapter4_dashboard.utils.export import figure_to_png_bytes, dataframe_to_csv_bytes
 from chapter4_dashboard.utils.styling import style_budget_table, style_per_dataset_latency_table
@@ -97,11 +98,30 @@ def render_tab_budget(df_eff: pd.DataFrame, df_latency: pd.DataFrame, cmap: dict
         mime="text/csv",
     )
 
+    st.markdown("**Figure 15 — Budget compliance (normalized to Baseline)**")
+    st.caption(
+        "Grouped bars represent total parameter count (M), FLOPs (M), and model size (MB) normalized "
+        "relative to the Baseline (100%). DualConv-only and Hybrid achieve approximately 20% FLOPs reduction "
+        "and 7% parameter reduction; ECA-only operates at near-budget parity."
+    )
+    fig_f15 = build_budget_compliance_normalized_bars(df_eff, st.session_state.theme, variants=list(tbl["Variant"]))
+    if fig_f15.data:
+        st.plotly_chart(fig_f15, use_container_width=True)
+        st.download_button(
+            "Download Figure 15 — budget compliance normalized (PNG)",
+            figure_to_png_bytes(fig_f15),
+            file_name="figure_15_budget_compliance_normalized.png",
+            mime="image/png",
+            key="dl_fig15_budget_norm",
+        )
+
     lat_wide = _per_dataset_latency_table(df_latency)
     st.markdown("**Per-dataset inference latency (ms)**")
     st.caption(
         "Mean latency per image (batch size 1) for each variant on CIFAR-10, CIFAR-100, and Tiny-ImageNet. "
-        "Despite near-zero FLOPs overhead, ECA-only records the highest latency across all datasets."
+        "Despite near-zero FLOPs overhead, ECA-only records the highest latency across all datasets, "
+        "illustrating the decoupling of theoretical compute cost from actual hardware execution time. "
+        "DualConv-only achieves the lowest latency, falling below the Baseline in all three conditions."
     )
     if lat_wide.empty:
         st.info(
@@ -119,6 +139,16 @@ def render_tab_budget(df_eff: pd.DataFrame, df_latency: pd.DataFrame, cmap: dict
             mime="text/csv",
             key="dl_per_ds_latency",
         )
+        fig_lat = build_per_dataset_latency_bars(lat_wide, cmap, st.session_state.theme)
+        if fig_lat.data:
+            st.plotly_chart(fig_lat, use_container_width=True)
+            st.download_button(
+                "Download per-dataset latency chart (PNG)",
+                figure_to_png_bytes(fig_lat),
+                file_name="per_dataset_latency_bars.png",
+                mime="image/png",
+                key="dl_per_ds_latency_png",
+            )
 
     fig = build_budget_bars(df_eff, cmap, st.session_state.theme, variants=list(tbl["Variant"]))
     st.plotly_chart(fig, use_container_width=True)
