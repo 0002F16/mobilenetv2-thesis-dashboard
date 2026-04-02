@@ -157,18 +157,31 @@ def render_tab_performance(
     st.markdown("**3C — Statistical Validation Table**")
     st.warning(
         "With n=5 seeds, Wilcoxon signed-rank has limited statistical power. Corrected p-values and effect sizes "
-        "(median Δ, CI) are the primary evidence. Significance stars are supplementary."
+        "(median Δ, CI) are the primary evidence. Sig. labels (p-threshold text) are supplementary. "
+        "The Sig. column uses Holm–Bonferroni corrected p (per Top-1 / Top-5 family) vs α, not Raw Wilcoxon p; "
+        "Raw p can be below α while Corrected p is not."
     )
     tb = st.session_state.get("stats_results")
     if tb is None or (hasattr(tb, "empty") and tb.empty):
         st.info("No stats available (need df_runs with Baseline and variant rows per dataset/seed).")
     else:
+        # Plain DataFrame + column_config (not Styler) so Sig. text renders reliably in Streamlit.
         st.dataframe(
-            tb.style.format(
-                {"Median Δ (pp)": "{:+.3f}", "W stat": "{:.0f}", "Raw p": "{:.4f}", "Corrected p": "{:.4f}"}
-            ),
+            tb,
+            column_config={
+                "Variant": st.column_config.TextColumn(),
+                "Dataset": st.column_config.TextColumn(),
+                "Metric": st.column_config.TextColumn(),
+                "Median Δ (pp)": st.column_config.NumberColumn(format="%+.3f"),
+                "95% CI": st.column_config.TextColumn(),
+                "W stat": st.column_config.NumberColumn(format="%.0f"),
+                "Raw p": st.column_config.NumberColumn(format="%.4f"),
+                "Corrected p": st.column_config.NumberColumn(format="%.4f"),
+                "Sig.": st.column_config.TextColumn(),
+            },
             use_container_width=True,
             height=360,
+            hide_index=True,
         )
         st.download_button(
             "Download Table B (CSV)",

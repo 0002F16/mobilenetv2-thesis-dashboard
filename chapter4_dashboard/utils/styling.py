@@ -88,3 +88,36 @@ def style_budget_table(df: pd.DataFrame) -> pd.io.formats.style.Styler:
                 sty = sty.applymap(color_pct, subset=[col])
     return sty
 
+
+def style_per_dataset_latency_table(df: pd.DataFrame) -> pd.io.formats.style.Styler:
+    """Rows: variants; columns: per-dataset mean latency (ms). Highlights worst (max) per dataset."""
+
+    def baseline_row(row):
+        if str(row.get("Variant", "")) == "Baseline":
+            return ["background-color: #e9ecef"] * len(row)
+        return [""] * len(row)
+
+    def col_worst(col: pd.Series):
+        if col.name == "Variant":
+            return [""] * len(col)
+        vals = pd.to_numeric(col, errors="coerce")
+        mx = vals.max()
+        out = []
+        for v in col:
+            if pd.isna(v) or pd.isna(mx):
+                out.append("")
+            elif float(v) == float(mx):
+                out.append("background-color: #fff3cd; font-weight: bold")
+            else:
+                out.append("")
+        return out
+
+    sty = df.style.apply(baseline_row, axis=1)
+    data_cols = [c for c in df.columns if c != "Variant"]
+    if data_cols:
+        try:
+            sty = sty.apply(col_worst, axis=0, subset=data_cols)
+        except TypeError:
+            sty = sty.apply(col_worst, axis=0)
+    return sty
+

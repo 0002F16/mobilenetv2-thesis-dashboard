@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 
 from chapter4_dashboard.figures.paired import build_paired_delta_grid
+from chapter4_dashboard.stats.tests import TABLE_B_ALPHA
 from chapter4_dashboard.utils.export import dataframe_to_csv_bytes, figure_to_png_bytes
 from chapter4_dashboard.utils.constants import SEEDS
 
@@ -126,7 +127,7 @@ def render_tab_ablation(df_runs: pd.DataFrame, cmap: dict[str, str]) -> None:
                 sub = tb[(tb["Dataset"] == ds) & (tb["Variant"] == v) & (tb["Metric"] == "Top-1")]
                 if len(sub):
                     pcorr = float(sub["Corrected p"].iloc[0])
-            sig = np.isfinite(pcorr) and pcorr < 0.05
+            sig = np.isfinite(pcorr) and pcorr <= TABLE_B_ALPHA
             if wins == 5 and sig:
                 interp = "Consistent improvement"
             elif wins >= 4 and sig:

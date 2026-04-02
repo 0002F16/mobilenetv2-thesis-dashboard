@@ -10,6 +10,9 @@ from statsmodels.stats.multitest import multipletests
 
 from chapter4_dashboard.utils.constants import DATASET_ORDER, SEEDS
 
+# Family-wise error rate / significance level for Holm-corrected Wilcoxon p-values (Table B).
+TABLE_B_ALPHA = 0.10
+
 
 def _bootstrap_ci_median(x: np.ndarray, n_resamples: int = 1000, alpha: float = 0.05, seed: int = 123) -> tuple[float, float]:
     g = np.random.default_rng(seed)
@@ -100,7 +103,9 @@ def compute_table_b(df_runs: pd.DataFrame) -> pd.DataFrame:
         ok = np.isfinite(pvals)
         corrected = np.full_like(pvals, np.nan, dtype=float)
         if ok.any():
-            corrected[ok] = multipletests(pvals[ok], method="holm")[1]
+            corrected[ok] = multipletests(
+                pvals[ok], alpha=TABLE_B_ALPHA, method="holm"
+            )[1]
         sub["Corrected p"] = corrected
         sub["Sig."] = sub["Corrected p"].apply(_sig_code)
         out_parts.append(sub)
@@ -123,13 +128,14 @@ def compute_table_b(df_runs: pd.DataFrame) -> pd.DataFrame:
 
 
 def _sig_code(p: float) -> str:
+    """Holm-corrected p tier labels (reject if p <= threshold)."""
     if not np.isfinite(p):
         return ""
-    if p < 0.001:
-        return "***"
-    if p < 0.01:
-        return "**"
-    if p < 0.05:
-        return "*"
+    if p <= 0.001:
+        return "p <= 0.001"
+    if p <= 0.01:
+        return "p <= 0.01"
+    if p <= TABLE_B_ALPHA:
+        return f"p <= {TABLE_B_ALPHA:.2f}"
     return ""
 

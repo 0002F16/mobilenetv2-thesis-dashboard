@@ -237,7 +237,7 @@ def render_app() -> None:
     with tabs[0]:
         render_tab_raw_data(df_runs_f, df_eff, df_curves_f, cmap)
     with tabs[1]:
-        render_tab_budget(df_eff, cmap)
+        render_tab_budget(df_eff, df_latency, cmap)
     with tabs[2]:
         render_tab_performance(df_runs_f, df_eff, df_latency, cmap)
     with tabs[3]:
